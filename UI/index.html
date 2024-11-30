@@ -37,23 +37,27 @@
 
 <body>
     <h1>SnapAI</h1>
-    <div class="input-container">
-        <select>
-            <option value="https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent">Google
-            </option>
-            <option value="https://api.openai.com/v1/chat/completions">OpenAI</option>
-            <option value="https://bedrock-runtime.us-east-1.amazonaws.com/model/anthropic.claude-v2/invoke">Amazon
-            </option>
-        </select>
-        <input type="text" placeholder="API Key">
-    </div>
-    <div class="audio-container">
-        <input type="file" accept=".wav,.acr,.jpg" id="audioFile">
-        <button onclick="uploadFile()">Save</button>
-    </div>
+        <div class="input-container">
+            <select id="aiProviderName">
+                <option value="https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent">
+                    Google
+                </option>
+                <option value="https://api.openai.com/v1/chat/completions">OpenAI</option>
+                <option value="https://bedrock-runtime.us-east-1.amazonaws.com/model/anthropic.claude-v2/invoke">Amazon
+                </option>
+            </select>
+            <input type="text" id="aiProviderKey" placeholder="API Key">
+        </div>
+        <div class="audio-container">
+            <input type="file" accept=".wav,.m4a" id="audioFile">
+            <button onclick="uploadFile()">Save</button>
+        </div>
 
     <script>
         function uploadFile() {
+            debugger;
+            const aiProviderName = document.getElementById("aiProviderName").value;
+            const aiProviderKey = document.getElementById("aiProviderKey").value;
             const fileInput = document.getElementById('audioFile');
             const file = fileInput.files[0];
 
@@ -62,18 +66,20 @@
                 return;
             }
 
-            const obj = {
-                hello: "world"
-            };
-            const json = JSON.stringify(obj);
-            const blob = new Blob([json], {
-                type: 'application/json'
-            });
+            // Read file as Base64
+            const reader = new FileReader();
+            reader.onloadend = async (result) => {
+                debugger;
+                const fileBase64 = reader.result
 
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('blob', blob);
-            fetch('https://yccwm1qprb.execute-api.us-east-1.amazonaws.com/Dev/audio-transcript', {
+                const payload = {
+                    fileName: file.name,
+                    fileContent: reader.result,
+                    aiProviderName,
+                    aiProviderKey
+                };
+
+                fetch('https://yccwm1qprb.execute-api.us-east-1.amazonaws.com/Dev/audio-transcript', {
                 method: 'POST',
             })
                 .then(response => {
@@ -87,6 +93,9 @@
                     console.error('Error:', error);
                     alert('Upload failed: ' + error.message);
                 });
+            }
+            reader.readAsDataURL(file);
+            
         }
     </script>
 </body>

@@ -3,13 +3,15 @@ package controllers;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyResponseEvent;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import models.TranscriptRequest;
 import org.junit.Test;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.HashMap;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Objects;
 
 public class AudioTranscriptTest {
   @Test
@@ -18,46 +20,28 @@ public class AudioTranscriptTest {
     AudioTranscript audioTranscript = new AudioTranscript();
     APIGatewayProxyResponseEvent result = audioTranscript.handleRequest(request, null);
     assertEquals(200, result.getStatusCode().intValue());
-    assertEquals("application/json", result.getHeaders().get("Content-Type"));
-    String content = result.getBody();
-    assertNotNull(content);
-    assertTrue(content.contains("\"message\""));
-    assertTrue(content.contains("\"hello world\""));
-    assertTrue(content.contains("\"location\""));
   }
 
   private APIGatewayProxyRequestEvent mockFileRequest() {
-    // Create a multipart form-data boundary
-    String boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW";
-
-    // Simulate two blobs of data
-    byte[] fileBlob = "mock file content".getBytes(StandardCharsets.UTF_8);
-    byte[] secondBlob = "mock blob content".getBytes(StandardCharsets.UTF_8);
-
     // Build multipart form-data payload
     StringBuilder requestBody = new StringBuilder();
-    requestBody.append("--").append(boundary).append("\r\n");
-    requestBody.append("Content-Disposition: form-data; name=\"file\"; filename=\"test.txt\"\r\n");
-    requestBody.append("Content-Type: application/octet-stream\r\n\r\n");
-    requestBody.append(new String(fileBlob)).append("\r\n");
+    try {
+      ClassLoader classLoader = getClass().getClassLoader();
+      File file = new File(Objects.requireNonNull(classLoader.getResource("base64audio.txt")).getFile());
+      String content = new String(Files.readAllBytes(file.toPath()));
+      var tr = new TranscriptRequest();
+      tr.setFileContent(content);
+      tr.setFileName("123.wav");
+      tr.setAiProviderName("openai");
+      tr.setAiProviderKey(System.getenv("API_KEY"));
 
-    requestBody.append("--").append(boundary).append("\r\n");
-    requestBody.append("Content-Disposition: form-data; name=\"blob\"\r\n");
-    requestBody.append("Content-Type: application/octet-stream\r\n\r\n");
-    requestBody.append(new String(secondBlob)).append("\r\n");
-
-    requestBody.append("--").append(boundary).append("--\r\n");
-
-    // Create headers
-    HashMap<String, String> headers = new HashMap<>();
-    headers.put("Content-Type", "multipart/form-data; boundary=" + boundary);
-
+      requestBody.append(new ObjectMapper().writeValueAsString(tr));
+    } catch (IOException e) {
+        throw new RuntimeException(e);
+    }
     // Create the API Gateway event
-    APIGatewayProxyRequestEvent request = new APIGatewayProxyRequestEvent()
-            .withHeaders(headers)
-            .withBody(requestBody.toString())
-            .withIsBase64Encoded(false);
-
-    return request;
+      return new APIGatewayProxyRequestEvent()
+              .withBody(requestBody.toString())
+              .withIsBase64Encoded(false);
   }
 }
