@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>SnapAI</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        .input-container {
+            margin-top: 20px;
+        }
+
+        .audio-container {
+            margin-top: 20px;
+        }
+
+        select,
+        input {
+            padding: 5px;
+            margin: 0 5px;
+        }
+
+        button {
+            padding: 5px 15px;
+            margin: 0 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>SnapAI</h1>
+    <div class="input-container">
+        <select>
+            <option value="https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent">Google
+            </option>
+            <option value="https://api.openai.com/v1/chat/completions">OpenAI</option>
+            <option value="https://bedrock-runtime.us-east-1.amazonaws.com/model/anthropic.claude-v2/invoke">Amazon
+            </option>
+        </select>
+        <input type="text" placeholder="API Key">
+    </div>
+    <div class="audio-container">
+        <input type="file" accept=".wav,.acr,.jpg" id="audioFile">
+        <button onclick="uploadFile()">Save</button>
+    </div>
+
+    <script>
+        function uploadFile() {
+            const fileInput = document.getElementById('audioFile');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('Please select a file first');
+                return;
+            }
+
+            const obj = {
+                hello: "world"
+            };
+            const json = JSON.stringify(obj);
+            const blob = new Blob([json], {
+                type: 'application/json'
+            });
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('blob', blob);
+            fetch('https://yccwm1qprb.execute-api.us-east-1.amazonaws.com/Dev/audio-transcript', {
+                method: 'POST',
+            })
+                .then(response => {
+                    if (response.ok) {
+                        alert('File uploaded successfully');
+                    } else {
+                        alert('Upload failed');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Upload failed: ' + error.message);
+                });
+        }
+    </script>
+</body>
+
+</html>
